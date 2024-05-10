@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
-
+import joblib
 
 # Set style for visualizations
 df = pd.read_csv("students_adaptability_level_online_education.csv")
@@ -460,3 +460,68 @@ elif page == "Visualization":
 
     # Menampilkan DataFrame sebagai tabel di aplikasi Streamlit
     st.dataframe(combined_data)
+    
+    
+    # Fungsi untuk preprocessing data
+    def preprocess_data(model_df):
+        cat_mapping = {
+            'Gender': {'Boy': 0, 'Girl': 1},
+            'Education Level': {'School': 0, 'University': 1, 'College': 2},
+            'Internet Type': {'Mobile Data': 0, 'Wifi': 1},
+            'Self Lms': {'No': 0, 'Yes': 1},
+            'Network Type': {'2G': 0, '3G': 1, '4G': 2},
+            'Class Duration': {'0': 0, '1-3': 1, '3-6': 2},
+            'Financial Condition': {'Mid': 0, 'Poor': 1, 'Rich': 2}
+        }
+
+        # Mengganti nilai kategori dengan representasi numerik
+        model_df.replace(cat_mapping, inplace=True)
+        
+        # Pastikan kolom yang diperlukan ada dan dalam urutan yang benar
+        required_columns = ['Gender', 'Education Level', 'Self Lms', 'Internet Type', 'Network Type', 'Class Duration', 'Financial Condition']
+        model_df = model_df[required_columns]  # Pastikan hanya mengambil kolom yang diperlukan
+
+        return model_df
+
+    # Mengambil input dari pengguna
+    st.title("Students Adaptability Level in Online Education")
+    st.header("Make a Prediction")
+
+    # Load model
+    tree_clf = joblib.load('gnb.pkl')
+
+    gender = st.selectbox('Gender', ['Boy', 'Girl'])
+    education_level = st.selectbox('Education Level', ['School', 'University', 'College'])
+    self_lms = st.selectbox('Self LMS', ['Yes', 'No'])
+    internet_type = st.selectbox('Internet Type', ['Wifi', 'Mobile Data'])
+    network_type = st.selectbox('Network Type', ['2G', '3G', '4G'])
+    Class = st.selectbox('Class Duration', ['0', '1-3', '3-6'])
+    Financial = st.selectbox('Financial Condition', ['Mid', 'Poor', 'Rich'])
+
+    input_data = {
+        'Gender': gender,
+        'Education Level': education_level,
+        'Self Lms': self_lms,
+        'Internet Type': internet_type,
+        'Network Type': network_type,
+        'Class Duration': Class,
+        'Financial Condition': Financial 
+    }
+
+    # Konversi input_data ke DataFrame
+    input_df = pd.DataFrame([input_data])
+
+    # Preprocess input data
+    input_df = preprocess_data(input_df)
+
+    # Melakukan prediksi
+    y_pred = tree_clf.predict(input_df)
+
+    # Menampilkan hasil prediksi
+    prediction_state = st.markdown('calculating...')
+    if y_pred[0] == 0:
+        msg = 'Siswa: **Tidak Mampu Beradaptasi**'
+    else:
+        msg = 'Siswa: **Mampu Beradaptasi**'
+
+    prediction_state.markdown(msg)
